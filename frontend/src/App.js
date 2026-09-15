@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Search, MapPin, MessageCircle, Plus, X, Trash2, Edit, Filter, Lock, ShieldAlert, Star, RefreshCcw, LogOut, Store, Briefcase, CheckCircle2, Download, Upload, Settings } from 'lucide-react';
+import { Phone, Search, MapPin, MessageCircle, Plus, X, Trash2, Edit, Filter, Lock, ShieldAlert, Star, RefreshCcw, LogOut, Store, Briefcase, CheckCircle2, Download, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 function App() {
