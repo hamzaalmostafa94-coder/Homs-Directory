@@ -143,6 +143,38 @@ app.delete('/api/listings/:id', verifyToken, async (req, res) => {
 
 // نستخدم process.env.PORT لأن الاستضافة ستحدد البورت بنفسها لاحقاً
 const PORT = process.env.PORT || 5000;
+// Endpoint لاستيراد مجموعة من العملاء (من ملف إكسل) دفعة واحدة
+// Endpoint لاستيراد مجموعة من العملاء دفعة واحدة (نسخة مرنة تقبل البيانات الناقصة)
+app.post('/api/listings/bulk', async (req, res) => {
+  try {
+    const items = req.body; 
+    let successCount = 0;
+
+    for (let item of items) {
+      // الشرط الوحيد الآن هو أن يكون هناك "اسم" للعميل على الأقل!
+      if (item.full_name && item.full_name.trim() !== "") {
+        await pool.query(
+          `INSERT INTO listings (full_name, category, region, detailed_address, phone_number, contact_method, map_url) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            item.full_name, 
+            item.category || 'غير محدد',         // إذا كانت الفئة فارغة
+            item.region || 'غير محدد',           // إذا كانت المنطقة فارغة
+            item.detailed_address || '',         // إذا كان العنوان فارغاً
+            item.phone_number || 'غير متوفر',    // إذا كان الرقم فارغاً
+            item.contact_method || '', 
+            item.map_url || ''
+          ]
+        );
+        successCount++;
+      }
+    }
+    res.status(201).json({ message: `تم استيراد ${successCount} عميل بنجاح!` });
+  } catch (err) {
+    console.error("خطأ في الاستيراد:", err.message);
+    res.status(500).json({ error: 'حدث خطأ أثناء الاستيراد' });
+  }
+});
 app.listen(PORT, () => {
   console.log(`🛡️ Server running securely on port ${PORT}`);
 });

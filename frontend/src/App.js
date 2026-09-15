@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Search, MapPin, MessageCircle, Plus, X, Trash2, Edit, Filter, Lock, ShieldAlert, Star, RefreshCcw, LogOut, Store, Briefcase, CheckCircle2, Download } from 'lucide-react';
+import { Phone, Search, MapPin, MessageCircle, Plus, X, Trash2, Edit, Filter, Lock, ShieldAlert, Star, RefreshCcw, LogOut, Store, Briefcase, CheckCircle2, Download, Upload, Settings } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 function App() {
   const [listings, setListings] = useState([]);
@@ -30,6 +31,106 @@ function App() {
 
   const API_URL_BASE = 'https://homs-directory.onrender.com';
   const API_URL = `${API_URL_BASE}/api/listings`;
+
+ // --- دوال الإكسل (استيراد وتصدير) ---
+  const handleExportExcel = async () => {
+    try {
+      // جلب كل البيانات من قاعدة البيانات فوراً بلمح البصر (بدون الحاجة للبحث بالشاشة)
+      const response = await fetch(`${API_URL_BASE}/api/listings`);
+      const allData = await response.json();
+      
+      if (allData.length === 0) {
+        alert("لا يوجد أي بيانات في الدليل لتصديرها!");
+        return;
+      }
+
+      const dataToExport = allData.map(item => ({
+        "الاسم الكامل": item.full_name,
+        "الفئة": item.category,
+        "المنطقة": item.region,
+        "رقم الهاتف": item.phone_number,
+        "الموقع التفصيلي": item.detailed_address || "",
+        "طريقة التواصل": item.contact_method || "واتساب/مكالمة هاتفية",
+        "رابط خريطة جوجل": item.map_url || ""
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "بيانات العملاء");
+      XLSX.writeFile(workbook, "دليل_العملاء.xlsx");
+    } catch (error) {
+      console.error("خطأ في التصدير:", error);
+      alert("حدث خطأ أثناء جلب البيانات للتصدير.");
+    }
+  };
+
+ const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet);
+
+        const formattedData = json.map(row => {
+          // 1. تنظيف أسماء الأعمدة: هذا الكود سيزيل أي مسافات زائدة أضافها الموظف بالخطأ
+          const cleanRow = {};
+          for (let key in row) {
+            cleanRow[key.trim()] = row[key];
+          }
+
+          // 2. توفير بدائل ذكية للبيانات الناقصة
+          return {
+            full_name: cleanRow["الاسم الكامل"] || "",
+            category: cleanRow["الفئة"] || "غير محدد",
+            region: cleanRow["المنطقة"] || "غير محدد",
+            detailed_address: cleanRow["الموقع التفصيلي"] || "",
+            // تحويل الرقم إلى نص لتجنب مشاكل الإكسل، وإذا كان فارغاً نضع "غير متوفر"
+            phone_number: cleanRow["رقم الهاتف"] ? String(cleanRow["رقم الهاتف"]) : "غير متوفر",
+            contact_method: cleanRow["طريقة التواصل"] || "",
+            map_url: cleanRow["رابط خريطة جوجل"] || ""
+          };
+        });
+
+        // تصفية الصفوف الفارغة تماماً (التي ليس لها اسم)
+        const validData = formattedData.filter(item => item.full_name !== "");
+
+        if (validData.length === 0) {
+          alert("الملف لا يحتوي على أي أسماء عملاء صالحة!");
+          return;
+        }
+
+        const response = await fetch(`${API_URL_BASE}/api/listings/bulk`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify(validData)
+        });
+
+        if (response.ok) {
+          const resultData = await response.json(); 
+          fetchOptions();
+          fetchListings(true);
+          alert(resultData.message); // سيعرض لك العدد الفعلي للعملاء المضافين
+        } else {
+          alert("حدث خطأ في الخادم أثناء الاستيراد.");
+        }
+      } catch (error) {
+        console.error("خطأ:", error);
+        alert("حدث خطأ أثناء قراءة الملف. تأكد من صحة الأعمدة.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = null; 
+  };
+  // ------------------------------------
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -364,11 +465,12 @@ function App() {
 
       <div className="max-w-[1400px] mx-auto">
         
-        {/* رأس الصفحة (Header) */}
-        <div className="mb-3 md:mb-4 bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-row justify-between items-center gap-3 md:gap-6 border border-slate-200 relative">
+        {/* رأس الصفحة (Header) المحدث */}
+        <div className="mb-3 md:mb-4 bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3 md:gap-6 border border-slate-200 relative">
+          {/* منطقة مخفية مزدوجة النقر لتسجيل الدخول */}
           <div onDoubleClick={() => setIsAuthModalOpen(true)} className="absolute left-0 top-0 w-16 md:w-24 h-full z-20 cursor-default"></div>
 
-          <div className="flex items-center gap-3 md:gap-4 relative z-10 pointer-events-none">
+          <div className="flex items-center gap-3 md:gap-4 relative z-10 pointer-events-none self-start md:self-auto">
             <div className="bg-blue-50 p-2 md:p-3 rounded-xl md:rounded-2xl border border-blue-100 text-blue-600">
               <MapPin className="w-5 h-5 md:w-8 md:h-8" />
             </div>
@@ -382,13 +484,25 @@ function App() {
             </div>
           </div>
           
-          <div className="flex flex-row w-auto gap-2 md:gap-3 relative z-10">
+          <div className="flex flex-row flex-wrap w-full md:w-auto gap-2 md:gap-3 relative z-10 justify-end mt-2 md:mt-0">
             {isAdmin && (
               <>
-                <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 md:px-6 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
-                  <Plus className="w-3.5 h-3.5 md:w-5 md:h-5" /> إضافة
+                {/* زر الاستيراد */}
+                <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base cursor-pointer">
+                  <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" /> استيراد
+                  <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" />
+                </label>
+
+                {/* زر التصدير */}
+                <button onClick={handleExportExcel} className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
+                  <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> تصدير
                 </button>
-                <button onClick={handleLogout} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 md:px-6 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 border border-rose-200 transition-all text-xs md:text-base">
+
+                <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
+                  <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> إضافة
+                </button>
+
+                <button onClick={handleLogout} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 border border-rose-200 transition-all text-xs md:text-base">
                   <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4" /> خروج
                 </button>
               </>
@@ -424,7 +538,6 @@ function App() {
             </form>
           </div>
           
-          {/* حاوية الفئات والمناطق بجانب بعضها على الموبايل */}
           <div className="flex w-full gap-2 md:gap-3 flex-[2]">
             <div className="flex-1 relative">
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full px-3 md:px-4 py-2 md:py-3 text-[11px] md:text-sm border border-slate-300 rounded-lg md:rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer appearance-none text-slate-600 pr-8">
