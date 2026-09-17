@@ -178,3 +178,17 @@ app.post('/api/listings/bulk', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🛡️ Server running securely on port ${PORT}`);
 });
+
+
+// Endpoint لمسح جميع البيانات دفعة واحدة (تصفير قاعدة البيانات)
+app.delete('/api/listings/all', async (req, res) => {
+  try {
+    // TRUNCATE تقوم بمسح كل البيانات وتصفير عداد الـ ID ليعود للرقم 1
+    await pool.query('TRUNCATE TABLE listings RESTART IDENTITY');
+    res.json({ message: 'تم مسح جميع البيانات بنجاح' });
+  } catch (err) {
+    console.error("خطأ في مسح البيانات:", err.message);
+    res.status(500).json({ error: 'حدث خطأ أثناء مسح البيانات' });
+  }
+});
+

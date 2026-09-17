@@ -35,7 +35,6 @@ function App() {
  // --- دوال الإكسل (استيراد وتصدير) ---
   const handleExportExcel = async () => {
     try {
-      // جلب كل البيانات من قاعدة البيانات فوراً بلمح البصر (بدون الحاجة للبحث بالشاشة)
       const response = await fetch(`${API_URL_BASE}/api/listings`);
       const allData = await response.json();
       
@@ -78,26 +77,22 @@ function App() {
         const json = XLSX.utils.sheet_to_json(worksheet);
 
         const formattedData = json.map(row => {
-          // 1. تنظيف أسماء الأعمدة: هذا الكود سيزيل أي مسافات زائدة أضافها الموظف بالخطأ
           const cleanRow = {};
           for (let key in row) {
             cleanRow[key.trim()] = row[key];
           }
 
-          // 2. توفير بدائل ذكية للبيانات الناقصة
           return {
             full_name: cleanRow["الاسم الكامل"] || "",
             category: cleanRow["الفئة"] || "غير محدد",
             region: cleanRow["المنطقة"] || "غير محدد",
             detailed_address: cleanRow["الموقع التفصيلي"] || "",
-            // تحويل الرقم إلى نص لتجنب مشاكل الإكسل، وإذا كان فارغاً نضع "غير متوفر"
             phone_number: cleanRow["رقم الهاتف"] ? String(cleanRow["رقم الهاتف"]) : "غير متوفر",
             contact_method: cleanRow["طريقة التواصل"] || "",
             map_url: cleanRow["رابط خريطة جوجل"] || ""
           };
         });
 
-        // تصفية الصفوف الفارغة تماماً (التي ليس لها اسم)
         const validData = formattedData.filter(item => item.full_name !== "");
 
         if (validData.length === 0) {
@@ -118,7 +113,7 @@ function App() {
           const resultData = await response.json(); 
           fetchOptions();
           fetchListings(true);
-          alert(resultData.message); // سيعرض لك العدد الفعلي للعملاء المضافين
+          alert(resultData.message); 
         } else {
           alert("حدث خطأ في الخادم أثناء الاستيراد.");
         }
@@ -297,6 +292,7 @@ function App() {
     }
   };
 
+  // دالة حذف عميل واحد
   const executeDelete = async (id, name) => {
     if (!token) return alert("الرجاء تسجيل الدخول أولاً!");
     
@@ -316,6 +312,35 @@ function App() {
         }
       } catch (error) {
         console.error('Error deleting:', error);
+      }
+    }
+  };
+
+  // دالة مسح كل البيانات الجديدة
+  const executeDeleteAll = async () => {
+    if (!token) return alert("الرجاء تسجيل الدخول أولاً!");
+    
+    if (window.confirm("تحذير خطير: سيتم حذف جميع بيانات الدليل نهائياً! هل أنت متأكد 100% من هذا الإجراء؟")) {
+      // تأكيد إضافي منعاً للخطأ
+      if (window.confirm("تأكيد أخير: لا يمكن التراجع عن هذه الخطوة أبداً. هل نمضي قدماً في مسح الدليل؟")) {
+        try {
+          const response = await fetch(`${API_URL}/all`, { 
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` } 
+          });
+          
+          if (response.ok) {
+            fetchListings(true); 
+            alert("تم تفريغ الدليل بالكامل بنجاح.");
+          } else if (response.status === 401 || response.status === 403) {
+            alert("انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مجدداً.");
+            handleLogout();
+          } else {
+            alert("حدث خطأ في الخادم أثناء محاولة المسح.");
+          }
+        } catch (error) {
+          console.error('Error deleting all:', error);
+        }
       }
     }
   };
@@ -498,11 +523,17 @@ function App() {
                   <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> تصدير
                 </button>
 
+
                 <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
                   <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> إضافة
                 </button>
 
-                <button onClick={handleLogout} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 border border-rose-200 transition-all text-xs md:text-base">
+                {/* الزر الجديد: مسح الكل */}
+                <button onClick={executeDeleteAll} className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
+                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> مسح الكل
+                </button>
+
+                <button onClick={handleLogout} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 border border-slate-200 transition-all text-xs md:text-base">
                   <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4" /> خروج
                 </button>
               </>
