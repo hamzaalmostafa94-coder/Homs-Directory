@@ -132,6 +132,17 @@ app.put('/api/listings/:id', verifyToken, async (req, res) => {
   }
 });
 
+// 1. مسار مسح كل البيانات (يجب أن يكون في الأعلى دائماً)
+app.delete('/api/listings/all', verifyToken, async (req, res) => {
+  try {
+    await pool.query('TRUNCATE TABLE listings RESTART IDENTITY');
+    res.json({ message: 'تم مسح جميع البيانات بنجاح' });
+  } catch (err) {
+    console.error("خطأ في مسح البيانات:", err.message);
+    res.status(500).json({ error: 'حدث خطأ أثناء مسح البيانات' });
+  }
+});
+// 2. مسار حذف خدمة واحدة (يأتي في الأسفل)
 app.delete('/api/listings/:id', verifyToken, async (req, res) => {
   try {
     await pool.query('DELETE FROM listings WHERE id = $1', [req.params.id]);
