@@ -2,7 +2,7 @@
 
 تطبيق ويب متكامل (Full-Stack Web Application) تم تصميمه وتطويره ليكون الدليل الرقمي الأول لمدينة حمص. يهدف المشروع إلى تسهيل وصول المستخدمين إلى الخدمات، المهن، والمحلات التجارية في المدينة من خلال واجهة مستخدم تفاعلية، سريعة، وسهلة الاستخدام، مع لوحة تحكم متكاملة لإدارة البيانات.
 
-![Homs Directory Preview](https://via.placeholder.com/800x400?text=Homs+Directory+Preview)
+![Homs Directory Preview](https://homs-directory.netlify.app/)
 
 ## ✨ الميزات الأساسية (Key Features)
 
