@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Search, MapPin, MessageCircle, Plus, X, Trash2, Edit, Filter, Lock, ShieldAlert, Star, RefreshCcw, LogOut, Store, Briefcase, CheckCircle2, Download, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import TypewriterGreeting from './TypewriterGreeting';
 
 function App() {
   const [listings, setListings] = useState([]);
@@ -501,11 +502,9 @@ function App() {
             </div>
             <div>
               <h1 className="text-lg md:text-4xl font-extrabold text-slate-800 mb-0.5 md:mb-1 tracking-tight">
-                مستقبل سورية الحديثة
+               دليل مدينة حمص
               </h1>
-              <p className="text-slate-500 text-xs md:text-base font-medium">
-                دليلك الشامل في مدينة حمص
-              </p>
+              <TypewriterGreeting />
             </div>
           </div>
           
@@ -560,6 +559,16 @@ function App() {
           </div>
         </div>
 
+        {!hasSearched && (
+          <div className="bg-white rounded-xl md:rounded-2xl p-6 md:p-12 text-center border border-slate-200 shadow-sm flex flex-col items-center gap-2 md:gap-4">
+            <div className="bg-blue-50 p-3 md:p-5 rounded-full mb-1 md:mb-2">
+              <Search className="w-6 h-6 md:w-10 md:h-10 text-blue-500" />
+             </div>
+            <h3 className="text-base md:text-xl font-bold text-slate-800">ابدأ البحث الآن</h3>
+            <p className="text-slate-500 text-xs md:text-base max-w-md mx-auto">استخدم الفلاتر في الاسفل للعثور على أي مهنة أو محل تجاري تبحث عنه في مدينتك بكل سهولة.</p>
+          </div>
+        )}
+
         {/* الفلاتر (Filters) */}
         <div className="bg-white p-3 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-slate-200 mb-5 flex flex-col md:flex-row gap-2 md:gap-3 relative z-30">
           <div className="w-full flex-[2]">
@@ -599,15 +608,7 @@ function App() {
         </div>
 
         {/* عرض النتائج والبانر الجديد */}
-        {!hasSearched ? (
-           <div className="bg-white rounded-xl md:rounded-2xl p-6 md:p-12 text-center border border-slate-200 shadow-sm flex flex-col items-center gap-2 md:gap-4">
-             <div className="bg-blue-50 p-3 md:p-5 rounded-full mb-1 md:mb-2">
-               <Search className="w-6 h-6 md:w-10 md:h-10 text-blue-500" />
-             </div>
-             <h3 className="text-base md:text-xl font-bold text-slate-800">ابدأ البحث الآن</h3>
-             <p className="text-slate-500 text-xs md:text-base max-w-md mx-auto">استخدم الفلاتر في الأعلى للعثور على أي مهنة أو محل تجاري تبحث عنه في مدينتك بكل سهولة.</p>
-           </div>
-        ) : loading ? (
+        {hasSearched && (loading ? (
            <div className="p-6 md:p-12 text-center text-slate-500 text-sm md:text-base font-bold animate-pulse">جاري جلب البيانات...</div>
         ) : (
           <div className="flex flex-col gap-4 md:gap-6">
@@ -725,7 +726,7 @@ function App() {
               </a>
             </div>
           </div>
-        )}
+        ))}
 
         {/* التذييل */}
         {!isAdmin && (
