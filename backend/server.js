@@ -50,13 +50,35 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// 🔑 تسجيل الدخول
+// 🔒 تخزين مؤقت لمحاولات تسجيل الدخول (Brute Force Protection)
+const loginAttempts = {};
+
+// 🔑 تسجيل الدخول مع الحماية
 app.post('/api/login', (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  const currentTime = Date.now();
+  
+  if (loginAttempts[ip] && loginAttempts[ip].count >= 5) {
+    const timeDiff = currentTime - loginAttempts[ip].lastAttemptTime;
+    if (timeDiff < 15 * 60 * 1000) { // 15 دقيقة
+      return res.status(429).json({ error: 'تم تجاوز عدد المحاولات المسموحة. يرجى المحاولة لاحقاً بعد 15 دقيقة.' });
+    } else {
+      loginAttempts[ip] = { count: 0, lastAttemptTime: currentTime };
+    }
+  }
+
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) {
+    if (loginAttempts[ip]) delete loginAttempts[ip];
     const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token });
   } else {
+    if (!loginAttempts[ip]) {
+      loginAttempts[ip] = { count: 1, lastAttemptTime: currentTime };
+    } else {
+      loginAttempts[ip].count += 1;
+      loginAttempts[ip].lastAttemptTime = currentTime;
+    }
     res.status(401).json({ error: 'كلمة المرور خاطئة' });
   }
 });
@@ -73,8 +95,9 @@ app.get('/api/options', async (req, res) => {
   }
 });
 
+// 📄 مسار جلب البيانات مع دعم الـ Pagination (limit و offset)
 app.get('/api/listings', async (req, res) => {
-  const { name, category, region } = req.query;
+  const { name, category, region, limit = 10, offset = 0 } = req.query;
   let query = 'SELECT * FROM listings WHERE 1=1';
   const params = [];
   let paramIndex = 1;
@@ -95,7 +118,8 @@ app.get('/api/listings', async (req, res) => {
     paramIndex++;
   }
   
-  query += ' ORDER BY id DESC';
+  query += ` ORDER BY id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+  params.push(parseInt(limit), parseInt(offset));
 
   try {
     const result = await pool.query(query, params);
@@ -105,9 +129,18 @@ app.get('/api/listings', async (req, res) => {
   }
 });
 
-// 🔒 مسارات التعديل (محمية)
+// 🗺️ تعبير Regex للتحقق من صحة رابط خرائط جوجل
+const googleMapsRegex = /^(https?:\/\/)?(www\.)?(google\.com\/maps|goo\.gl\/maps|maps\.app\.goo\.gl)\/.+$/i;
+
+// 🔒 مسار الإضافة مع فحص رابط الخرائط (الشق الأول)
 app.post('/api/listings', verifyToken, async (req, res) => {
   const { full_name, category, region, detailed_address, phone_number, contact_method, map_url } = req.body;
+  
+  // التحقق من صحة رابط الخرائط إذا تم إدخاله
+  if (map_url && map_url.trim() !== "" && !googleMapsRegex.test(map_url)) {
+    return res.status(400).json({ error: 'رابط خرائط جوجل غير صالح. يرجى إدخال رابط صحيح.' });
+  }
+
   const query = `INSERT INTO listings (full_name, category, region, detailed_address, phone_number, contact_method, map_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
   const params = [full_name, category, region, detailed_address, phone_number, contact_method || 'عبر واتساب/مكالمة هاتفية', map_url || null];
 
@@ -119,8 +152,15 @@ app.post('/api/listings', verifyToken, async (req, res) => {
   }
 });
 
+// 🔒 مسار التعديل مع فحص رابط الخرائط (الشق الأول)
 app.put('/api/listings/:id', verifyToken, async (req, res) => {
   const { full_name, category, region, detailed_address, phone_number, map_url } = req.body;
+  
+  // التحقق من صحة رابط الخرائط إذا تم إدخاله
+  if (map_url && map_url.trim() !== "" && !googleMapsRegex.test(map_url)) {
+    return res.status(400).json({ error: 'رابط خرائط جوجل غير صالح. يرجى إدخال رابط صحيح.' });
+  }
+
   const query = `UPDATE listings SET full_name = $1, category = $2, region = $3, detailed_address = $4, phone_number = $5, map_url = $6 WHERE id = $7`;
   const params = [full_name, category, region, detailed_address, phone_number, map_url || null, req.params.id];
 
@@ -132,7 +172,7 @@ app.put('/api/listings/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 1. مسار مسح كل البيانات (يجب أن يكون في الأعلى دائماً)
+// مسار مسح كل البيانات
 app.delete('/api/listings/all', verifyToken, async (req, res) => {
   try {
     await pool.query('TRUNCATE TABLE listings RESTART IDENTITY');
@@ -142,7 +182,8 @@ app.delete('/api/listings/all', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'حدث خطأ أثناء مسح البيانات' });
   }
 });
-// 2. مسار حذف خدمة واحدة (يأتي في الأسفل)
+
+// مسار حذف خدمة واحدة
 app.delete('/api/listings/:id', verifyToken, async (req, res) => {
   try {
     await pool.query('DELETE FROM listings WHERE id = $1', [req.params.id]);
@@ -152,54 +193,72 @@ app.delete('/api/listings/:id', verifyToken, async (req, res) => {
   }
 });
 
-// نستخدم process.env.PORT لأن الاستضافة ستحدد البورت بنفسها لاحقاً
-const PORT = process.env.PORT || 5000;
-// Endpoint لاستيراد مجموعة من العملاء (من ملف إكسل) دفعة واحدة
-// Endpoint لاستيراد مجموعة من العملاء دفعة واحدة (نسخة مرنة تقبل البيانات الناقصة)
+// 📊 مسار استيراد مجموعة من العملاء (Bulk) مع التحقق من صحة البيانات (Data Validation)
 app.post('/api/listings/bulk', async (req, res) => {
   try {
     const items = req.body; 
-    let successCount = 0;
+    
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'الملف فارغ أو صيغة البيانات غير صحيحة' });
+    }
 
-    for (let item of items) {
-      // الشرط الوحيد الآن هو أن يكون هناك "اسم" للعميل على الأقل!
-      if (item.full_name && item.full_name.trim() !== "") {
-        await pool.query(
-          `INSERT INTO listings (full_name, category, region, detailed_address, phone_number, contact_method, map_url) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            item.full_name, 
-            item.category || 'غير محدد',         // إذا كانت الفئة فارغة
-            item.region || 'غير محدد',           // إذا كانت المنطقة فارغة
-            item.detailed_address || '',         // إذا كان العنوان فارغاً
-            item.phone_number || 'غير متوفر',    // إذا كان الرقم فارغاً
-            item.contact_method || '', 
-            item.map_url || ''
-          ]
-        );
-        successCount++;
+    const errors = [];
+    const phoneTracker = new Set(); // لتتبع أرقام الهواتف المكررة ضمن الملف
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const rowNum = i + 1;
+
+      // 1. فحص الاسم (إلزامي)
+      if (!item.full_name || item.full_name.trim() === "") {
+        errors.push(`خطأ بالسطر رقم ${rowNum}: اسم العميل مفقود.`);
+        continue;
+      }
+
+      // 2. فحص تكرار رقم الهاتف
+      const phone = item.phone_number ? item.phone_number.trim() : '';
+      if (phone && phone !== 'غير متوفر' && phone !== '') {
+        if (phoneTracker.has(phone)) {
+          errors.push(`خطأ بالسطر رقم ${rowNum}: رقم الهاتف (${phone}) مكرر ضمن الملف.`);
+        } else {
+          phoneTracker.add(phone);
+        }
       }
     }
-    res.status(201).json({ message: `تم استيراد ${successCount} عميل بنجاح!` });
+
+    if (errors.length > 0) {
+      return res.status(400).json({ 
+        error: 'فشل التحقق من صحة بيانات الملف', 
+        details: errors 
+      });
+    }
+
+    let successCount = 0;
+    for (let item of items) {
+      await pool.query(
+        `INSERT INTO listings (full_name, category, region, detailed_address, phone_number, contact_method, map_url) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          item.full_name, 
+          item.category || 'غير محدد',         
+          item.region || 'غير محدد',           
+          item.detailed_address || '',         
+          item.phone_number || 'غير متوفر',    
+          item.contact_method || '', 
+          item.map_url || ''
+        ]
+      );
+      successCount++;
+    }
+
+    res.status(201).json({ message: `تم فحص واستيراد ${successCount} عميل بنجاح!` });
   } catch (err) {
     console.error("خطأ في الاستيراد:", err.message);
     res.status(500).json({ error: 'حدث خطأ أثناء الاستيراد' });
   }
 });
+
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🛡️ Server running securely on port ${PORT}`);
 });
-
-
-// Endpoint لمسح جميع البيانات دفعة واحدة (تصفير قاعدة البيانات)
-app.delete('/api/listings/all', async (req, res) => {
-  try {
-    // TRUNCATE تقوم بمسح كل البيانات وتصفير عداد الـ ID ليعود للرقم 1
-    await pool.query('TRUNCATE TABLE listings RESTART IDENTITY');
-    res.json({ message: 'تم مسح جميع البيانات بنجاح' });
-  } catch (err) {
-    console.error("خطأ في مسح البيانات:", err.message);
-    res.status(500).json({ error: 'حدث خطأ أثناء مسح البيانات' });
-  }
-});
-

@@ -1,0 +1,25 @@
+{
+  "name": "homs-directory",
+  "version": "1.0.0",
+  "description": "تطبيق ويب متكامل (Full-Stack Web Application) تم تصميمه وتطويره ليكون الدليل الرقمي الأول لمدينة حمص. يهدف المشروع إلى تسهيل وصول المستخدمين إلى الخدمات، المهن، والمحلات التجارية في المدينة من خلال واجهة مستخدم تفاعلية، سريعة، وسهلة الاستخدام، مع لوحة تحكم متكاملة لإدارة البيانات.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamzaalmostafa94-coder/Homs-Directory.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hamzaalmostafa94-coder/Homs-Directory/issues"
+  },
+  "homepage": "https://github.com/hamzaalmostafa94-coder/Homs-Directory#readme",
+  "dependencies": {
+    "lucide-react": "^1.52.0",
+    "xlsx": "^0.18.5"
+  }
+}

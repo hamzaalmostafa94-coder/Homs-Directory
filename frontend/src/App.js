@@ -305,7 +305,6 @@ function App() {
     }
   };
 
-  // دالة حذف عميل واحد
   const executeDelete = async (id, name) => {
     if (!token) return alert("الرجاء تسجيل الدخول أولاً!");
     
@@ -329,12 +328,10 @@ function App() {
     }
   };
 
-  // دالة مسح كل البيانات الجديدة
   const executeDeleteAll = async () => {
     if (!token) return alert("الرجاء تسجيل الدخول أولاً!");
     
     if (window.confirm("تحذير خطير: سيتم حذف جميع بيانات الدليل نهائياً! هل أنت متأكد 100% من هذا الإجراء؟")) {
-      // تأكيد إضافي منعاً للخطأ
       if (window.confirm("تأكيد أخير: لا يمكن التراجع عن هذه الخطوة أبداً. هل نمضي قدماً في مسح الدليل؟")) {
         try {
           const response = await fetch(`${API_URL}/all`, { 
@@ -506,7 +503,6 @@ function App() {
         
         {/* رأس الصفحة (Header) */}
         <div className="mb-3 md:mb-4 bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3 md:gap-6 border border-slate-200 relative">
-          {/* منطقة مخفية مزدوجة النقر لتسجيل الدخول */}
           <div onDoubleClick={() => setIsAuthModalOpen(true)} className="absolute left-0 top-0 w-16 md:w-24 h-full z-20 cursor-default"></div>
 
           <div className="flex items-center gap-3 md:gap-4 relative z-10 pointer-events-none self-start md:self-auto">
@@ -524,13 +520,11 @@ function App() {
           <div className="flex flex-row flex-wrap w-full md:w-auto gap-2 md:gap-3 relative z-10 justify-end mt-2 md:mt-0">
             {isAdmin && (
               <>
-                {/* زر الاستيراد */}
                 <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base cursor-pointer">
                   <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" /> استيراد
                   <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" />
                 </label>
 
-                {/* زر التصدير */}
                 <button onClick={handleExportExcel} className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
                   <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> تصدير
                 </button>
@@ -539,7 +533,6 @@ function App() {
                   <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> إضافة
                 </button>
 
-                {/* الزر الجديد: مسح الكل */}
                 <button onClick={executeDeleteAll} className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 md:px-4 md:py-3.5 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 shadow-sm transition-all text-xs md:text-base">
                   <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> مسح الكل
                 </button>
@@ -621,7 +614,7 @@ function App() {
           </div>
         </div>
 
-        {/* عرض النتائج والبانر الجديد */}
+        {/* عرض النتائج */}
         {hasSearched && (loading ? (
            <div className="p-6 md:p-12 text-center text-slate-500 text-sm md:text-base font-bold animate-pulse">جاري جلب البيانات...</div>
         ) : (
@@ -649,6 +642,7 @@ function App() {
                       </tr>
                     </thead>
                     <tbody className="text-slate-700">
+<<<<<<< HEAD
                       {listings.map((item, index) => (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/80 transition group">
                           <td className="p-4 text-center font-bold text-slate-400 group-hover:text-blue-600 transition-colors">{index + 1}</td>
@@ -680,35 +674,82 @@ function App() {
                           </td>
                         </tr>
                       ))}
+=======
+                      {listings.map((item, index) => {
+                        const hasPhone = item.phone_number && item.phone_number !== 'غير متوفر' && item.phone_number.trim() !== '';
+                        return (
+                          <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/80 transition group">
+                            <td className="p-4 text-center font-bold text-slate-400 group-hover:text-blue-600 transition-colors">{index + 1}</td>
+                            <td className="p-4 font-bold text-slate-900">{item.full_name}</td>
+                            <td className="p-4 text-slate-700 font-medium">{item.category}</td>
+                            <td className="p-4 text-slate-700 font-medium">{item.region}</td>
+                            <td className="p-4 text-sm max-w-xs truncate text-slate-600">{item.detailed_address}</td>
+                            <td className="p-4 text-center">
+                              <a href={getMapLink(item)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-bold transition border border-rose-100 shadow-sm">
+                                <MapPin className="w-3.5 h-3.5" /> الخريطة
+                              </a>
+                            </td>
+                            <td className="p-4">
+                              <div className="bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg w-fit border border-slate-200 font-bold shadow-sm group-hover:border-blue-200 group-hover:bg-white transition-all"><span dir="ltr">{item.phone_number}</span></div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex gap-2 justify-center items-center">
+                                {hasPhone ? (
+                                  <>
+                                    <a href={getWhatsAppLink(item.phone_number)} target="_blank" rel="noreferrer" className="flex items-center justify-center p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition shadow-sm" title="واتساب"><MessageCircle className="w-4 h-4" /></a>
+                                    <a href={`tel:${item.phone_number}`} className="flex items-center justify-center p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition shadow-sm" title="اتصال"><Phone className="w-4 h-4" /></a>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="flex items-center justify-center p-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed shadow-none" title="رقم الهاتف غير متوفر"><MessageCircle className="w-4 h-4" /></span>
+                                    <span className="flex items-center justify-center p-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed shadow-none" title="رقم الهاتف غير متوفر"><Phone className="w-4 h-4" /></span>
+                                  </>
+                                )}
+                                
+                                {isAdmin && (
+                                  <>
+                                    <button onClick={() => openEditModal(item)} className="flex items-center justify-center p-2 bg-slate-100 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition border border-slate-200 shadow-sm" title="تعديل"><Edit className="w-4 h-4" /></button>
+                                    <button onClick={() => executeDelete(item.id, item.full_name)} className="flex items-center justify-center p-2 bg-slate-100 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition border border-slate-200 shadow-sm" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+>>>>>>> 353504f (update: disable call and whatsapp buttons if phone number is missing)
                     </tbody>
                   </table>
                 </div>
 
                 {/* العرض المضغوط على شاشات الهواتف المحمولة */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-                  {listings.map((item) => (
-                    <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2 relative mt-1">
-                      
-                      {isAdmin && (
-                        <div className="absolute top-2 left-2 flex gap-1.5">
-                          <button onClick={() => openEditModal(item)} className="p-1.5 bg-slate-50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-md transition border border-slate-200" title="تعديل"><Edit className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => executeDelete(item.id, item.full_name)} className="p-1.5 bg-slate-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-md transition border border-slate-200" title="حذف"><Trash2 className="w-3.5 h-3.5" /></button>
+                  {listings.map((item) => {
+                    const hasPhone = item.phone_number && item.phone_number !== 'غير متوفر' && item.phone_number.trim() !== '';
+                    return (
+                      <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2 relative mt-1">
+                        
+                        {isAdmin && (
+                          <div className="absolute top-2 left-2 flex gap-1.5">
+                            <button onClick={() => openEditModal(item)} className="p-1.5 bg-slate-50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-md transition border border-slate-200" title="تعديل"><Edit className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => executeDelete(item.id, item.full_name)} className="p-1.5 bg-slate-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-md transition border border-slate-200" title="حذف"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between items-start pr-1">
+                          <div>
+                            <h3 className="font-bold text-sm text-slate-900 pr-12">{item.full_name}</h3>
+                          </div>
                         </div>
-                      )}
-                      
-                      <div className="flex justify-between items-start pr-1">
-                        <div>
-                          <h3 className="font-bold text-sm text-slate-900 pr-12">{item.full_name}</h3>
+                        
+                        <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg mt-1 border border-slate-100 flex flex-col gap-1.5">
+                          <p><strong className="text-slate-900">الفئة:</strong> {item.category}</p>
+                          <p><strong className="text-slate-900">المنطقة:</strong> {item.region}</p>
+                          {item.detailed_address && <p><strong className="text-slate-900">العنوان:</strong> {item.detailed_address}</p>}
+                          <p className="flex items-center gap-1.5"><strong className="text-slate-900">الرقم:</strong> <span dir="ltr" className="font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{item.phone_number}</span></p>
                         </div>
-                      </div>
-                      
-                      <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg mt-1 border border-slate-100 flex flex-col gap-1.5">
-                        <p><strong className="text-slate-900">الفئة:</strong> {item.category}</p>
-                        <p><strong className="text-slate-900">المنطقة:</strong> {item.region}</p>
-                        {item.detailed_address && <p><strong className="text-slate-900">العنوان:</strong> {item.detailed_address}</p>}
-                        <p className="flex items-center gap-1.5"><strong className="text-slate-900">الرقم:</strong> <span dir="ltr" className="font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{item.phone_number}</span></p>
-                      </div>
 
+<<<<<<< HEAD
                       <div className="flex gap-1.5 mt-1">
                         {/* استبدال الأيقونة القديمة بمكون الواتساب الجديد */}
                         <a href={getWhatsAppLink(item.phone_number)} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition shadow-sm">
@@ -720,9 +761,35 @@ function App() {
                         <a href={getMapLink(item)} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center px-3 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-lg text-[10px] font-bold transition border border-rose-100 shadow-sm" title="عرض الخريطة">
                           <MapPin className="w-4 h-4" />
                         </a>
+=======
+                        <div className="flex gap-1.5 mt-1">
+                          {hasPhone ? (
+                            <>
+                              <a href={getWhatsAppLink(item.phone_number)} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition shadow-sm">
+                                <MessageCircle className="w-3.5 h-3.5" /> واتساب
+                              </a>
+                              <a href={`tel:${item.phone_number}`} className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold transition shadow-sm">
+                                <Phone className="w-3.5 h-3.5" /> اتصال
+                              </a>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-200 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed shadow-none">
+                                <MessageCircle className="w-3.5 h-3.5" /> واتساب
+                              </span>
+                              <span className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-200 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed shadow-none">
+                                <Phone className="w-3.5 h-3.5" /> اتصال
+                              </span>
+                            </>
+                          )}
+                          <a href={getMapLink(item)} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center px-3 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-lg text-[10px] font-bold transition border border-rose-100 shadow-sm" title="عرض الخريطة">
+                            <MapPin className="w-4 h-4" />
+                          </a>
+                        </div>
+>>>>>>> 353504f (update: disable call and whatsapp buttons if phone number is missing)
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -748,7 +815,6 @@ function App() {
         {/* التذييل */}
         {!isAdmin && (
           <div className="mt-8 md:mt-12 mb-6 md:mb-8 bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-sm border border-slate-200 text-center flex flex-col items-center justify-center gap-3 md:gap-4 relative overflow-hidden">
-            
             <div className="bg-blue-50 p-3 md:p-4 rounded-full mb-1 md:mb-2 text-blue-600">
               <Star className="w-6 h-6 md:w-8 md:h-8" />
             </div>
